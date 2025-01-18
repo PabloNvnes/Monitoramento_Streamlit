@@ -25,3 +25,34 @@ irradiance = get_solar_irradiance(lat, lon, date_time)
 # Exibir dados no Streamlit
 st.title('Dados de Irradiância Solar em Tempo Real')
 st.write(f"Irradiância solar atual em São Paulo: {irradiance} W/m²")
+
+from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
+
+# Obter dados de irradiância solar para as últimas 24 horas
+irradiance_data = []
+time_data = []
+current_time = datetime.now(timezone)
+for hour in range(24):
+    time_point = current_time - timedelta(hours=hour)
+    irradiance = get_solar_irradiance(lat, lon, time_point)
+    irradiance_data.append(irradiance)
+    time_data.append(time_point)
+
+# Inverter os dados para que o tempo esteja em ordem crescente
+irradiance_data.reverse()
+time_data.reverse()
+
+# Criar o gráfico
+plt.figure(figsize=(10, 5))
+plt.plot(time_data, irradiance_data, marker='o')
+plt.xlabel('Hora')
+plt.ylabel('Irradiância Solar (W/m²)')
+plt.title('Irradiância Solar nas Últimas 24 Horas em São Paulo')
+plt.xticks(rotation=45)
+plt.grid(True)
+plt.tight_layout()
+
+# Exibir o gráfico no Streamlit
+st.title('Gráfico de Irradiância Solar nas Últimas 24 Horas')
+st.pyplot(plt)
