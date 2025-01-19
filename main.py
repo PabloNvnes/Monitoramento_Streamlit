@@ -7,6 +7,10 @@ from pysolar.radiation import get_radiation_direct
 import matplotlib.pyplot as plt
 import pandas as pd
 
+###############
+##  Funções  ## 
+###############
+
 # Função para obter dados de irradiância solar
 def get_solar_irradiance(lat, lon, date_time):
     altitude = get_altitude(lat, lon, date_time)
@@ -15,6 +19,17 @@ def get_solar_irradiance(lat, lon, date_time):
     else:
         irradiance = 0
     return irradiance
+
+#####################
+## Streamlit Geral ##
+#####################
+
+# Adicionar uma barra lateral
+add_sidebar = st.sidebar.selectbox('Análises', ('Irradiância Solar', 'Performance dos Estados', 'Disponibilidade de Energia'))
+
+#################
+## Irradiância ##
+#################
 
 # Lista de cidades representativas de cada estado do Brasil com suas coordenadas
 cities = [
@@ -78,9 +93,6 @@ plt.xticks(rotation=45)
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
-
-# Adicionar uma barra lateral
-add_sidebar = st.sidebar.selectbox('Análises', ('Irradiância Solar', 'Performance dos Estados', 'Disponibilidade de Energia'))
 
 # Exibir o gráfico no Streamlit
 st.title('Gráfico de Irradiância Solar nas Últimas 24 Horas')
