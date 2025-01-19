@@ -152,7 +152,7 @@ def performance():
     st.title('Performance do Inversor Solar a Cada 5 Minutos')
     st.plotly_chart(fig_performance, use_container_width=True)
 
-def disponibilidade():
+def indicadores_realtime():
     return
 
 #####################
@@ -160,7 +160,7 @@ def disponibilidade():
 #####################
 
 # Adicionar uma barra lateral
-add_sidebar = st.sidebar.selectbox('Análises', ('Irradiância Solar', 'Performance dos Estados', 'Disponibilidade de Energia'))
+add_sidebar = st.sidebar.selectbox('Análises', ('Irradiância Solar', 'Performance e disponibilidade das Usinas', 'Indicadores Real Time'))
 
 #################
 ## Irradiância ##
@@ -184,7 +184,7 @@ if add_sidebar == 'Performance e disponibilidade das Usinas':
 ## Disponibilidade de Energia ##
 ################################
 
-if add_sidebar == 'Disponibilidade de Energia':
-    st.title('Disponibilidade de Energia')
+if add_sidebar == 'Indicadores Real Time':
+    st.title('Indicadores Real Time')
 
-    disponibilidade()
+    indicadores_realtime()
