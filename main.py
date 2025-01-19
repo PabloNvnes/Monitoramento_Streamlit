@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 import pytz
 from pysolar.solar import get_altitude
 from pysolar.radiation import get_radiation_direct
-import matplotlib.pyplot as plt
 import pandas as pd
+import plotly.express as px
 
 ###############
 ##  Funções  ## 
@@ -82,21 +82,13 @@ df = pd.DataFrame(irradiance_data, index=time_data)
 # Inverter os dados para que o tempo esteja em ordem crescente
 df = df.iloc[::-1]
 
-# Criar o gráfico
-plt.figure(figsize=(15, 7))
-for city in cities:
-    plt.plot(df.index, df[city["state"]], marker='o', label=city["state"])
-plt.xlabel('Hora')
-plt.ylabel('Irradiância Solar (W/m²)')
-plt.title('Irradiância Solar nas Últimas 24 Horas')
-plt.xticks(rotation=45)
-plt.legend()
-plt.grid(True)
-plt.tight_layout()
+# Criar o gráfico com Plotly Express
+fig = px.line(df, x=df.index, y=df.columns, labels={'value': 'Irradiância Solar (W/m²)', 'index': 'Hora'}, title='Irradiância Solar nas Últimas 24 Horas')
+fig.update_layout(xaxis_title='Hora', yaxis_title='Irradiância Solar (W/m²)', legend_title_text='Estado')
 
 # Exibir o gráfico no Streamlit
 st.title('Gráfico de Irradiância Solar nas Últimas 24 Horas')
-st.pyplot(plt)
+st.plotly_chart(fig)
 
 # Exibir top 10 de maiores e menores irradiâncias médias
 sorted_irradiance = sorted(average_irradiance.items(), key=lambda x: x[1], reverse=True)
@@ -105,7 +97,7 @@ top_10_lowest = sorted_irradiance[-10:]
 
 # Criar DataFrames para os top 10
 df_top_10_highest = pd.DataFrame(top_10_highest, columns=['Estado', 'Irradiância Média (W/m²)'])
-df_top_10_lowest = pd.DataFrame(top_10_lowest, columns=['Estado', 'Irradiância Média (W/m²)']).iloc[::-1]
+df_top_10_lowest = pd.DataFrame(top_10_lowest, columns=['Estado', 'Irradiância Média (W/m²)'])
 
 # Exibir tabelas estilizadas no Streamlit
 st.title('Top 10 Maiores Irradiâncias Médias')
