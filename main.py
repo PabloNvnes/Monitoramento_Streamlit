@@ -1,4 +1,3 @@
-# Importações
 import streamlit as st
 from datetime import datetime, timedelta
 import pytz
@@ -64,8 +63,8 @@ def irradiancia():
             irradiance = get_solar_irradiance(city["lat"], city["lon"], local_time)
             irradiance_data[city["state"]].append(irradiance)
 
-    # Calcular a irradiância solar média para cada estado
-    average_irradiance = {state: sum(irradiance_data[state]) / len(irradiance_data[state]) for state in irradiance_data}
+    # Calcular a irradiância solar total para cada estado
+    total_irradiance = {state: sum(irradiance_data[state]) for state in irradiance_data}
 
     # Criar DataFrame para facilitar a manipulação dos dados
     df = pd.DataFrame(irradiance_data, index=time_data)
@@ -81,21 +80,16 @@ def irradiancia():
     st.title('Gráfico de Irradiância Solar nas Últimas 24 Horas')
     st.plotly_chart(fig)
 
-    # Exibir top 10 de maiores e menores irradiâncias médias
-    sorted_irradiance = sorted(average_irradiance.items(), key=lambda x: x[1], reverse=True)
-    top_10_highest = sorted_irradiance[:10]
-    top_10_lowest = sorted_irradiance[-10:]
+    # Criar DataFrame para a soma total da irradiância
+    df_total_irradiance = pd.DataFrame(list(total_irradiance.items()), columns=['Estado', 'Irradiância Total (W/m²)'])
 
-    # Criar DataFrames para os top 10
-    df_top_10_highest = pd.DataFrame(top_10_highest, columns=['Estado', 'Irradiância Média (W/m²)'])
-    df_top_10_lowest = pd.DataFrame(top_10_lowest, columns=['Estado', 'Irradiância Média (W/m²)']).iloc[::-1]
+    # Criar gráfico de barras com Plotly Express
+    fig_bar = px.bar(df_total_irradiance.sort_values(by='Irradiância Total (W/m²)', ascending=False), x='Estado', y='Irradiância Total (W/m²)', title='Irradiância Solar Total por Estado nas Últimas 24 Horas')
+    fig_bar.update_layout(xaxis_title='Estado', yaxis_title='Irradiância Total (W/m²)', legend_title_text='Estado')
 
-    # Exibir tabelas estilizadas no Streamlit
-    st.title('Top 10 Maiores Irradiâncias Médias')
-    st.table(df_top_10_highest.style.format({'Irradiância Média (W/m²)': '{:.2f}'}))
-
-    st.title('Top 10 Menores Irradiâncias Médias')
-    st.table(df_top_10_lowest.style.format({'Irradiância Média (W/m²)': '{:.2f}'}))
+    # Exibir o gráfico de barras no Streamlit
+    st.title('Irradiância Solar Total por Estado nas Últimas 24 Horas')
+    st.plotly_chart(fig_bar)
 
 def performance():
     return
