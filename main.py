@@ -26,7 +26,7 @@ def get_solar_irradiance(lat, lon, date_time):
 def calculate_inverter_performance(irradiance, efficiency=0.20):
     return irradiance * efficiency
 
-def irradiancia(selected_usina=None):
+def irradiancia(selected_usina=None, selected_date=None):
 
     # Lista de usinas fictícias com suas coordenadas
     plants = [
@@ -38,18 +38,29 @@ def irradiancia(selected_usina=None):
     if selected_usina:
         plants = [plant for plant in plants if plant["plant"] == selected_usina]
 
-    # Obter dados de irradiância solar para as últimas 24 horas para cada usina
+    # Obter dados de irradiância solar para as últimas 24 horas ou para um dia específico
     irradiance_data = {plant["plant"]: [] for plant in plants}
     time_data = []
-    current_time = datetime.now(pytz.utc)
-    for hour in range(24):
-        time_point = current_time - timedelta(hours=hour)
-        time_data.append(time_point)
-        for plant in plants:
-            timezone = pytz.timezone(plant["timezone"])
-            local_time = time_point.astimezone(timezone)
-            irradiance = get_solar_irradiance(plant["lat"], plant["lon"], local_time)
-            irradiance_data[plant["plant"]].append(irradiance)
+    if selected_date:
+        current_time = datetime.combine(selected_date, datetime.min.time()).replace(tzinfo=pytz.utc)
+        for hour in range(24):
+            time_point = current_time + timedelta(hours=hour)
+            time_data.append(time_point)
+            for plant in plants:
+                timezone = pytz.timezone(plant["timezone"])
+                local_time = time_point.astimezone(timezone)
+                irradiance = get_solar_irradiance(plant["lat"], plant["lon"], local_time)
+                irradiance_data[plant["plant"]].append(irradiance)
+    else:
+        current_time = datetime.now(pytz.utc)
+        for hour in range(24):
+            time_point = current_time - timedelta(hours=hour)
+            time_data.append(time_point)
+            for plant in plants:
+                timezone = pytz.timezone(plant["timezone"])
+                local_time = time_point.astimezone(timezone)
+                irradiance = get_solar_irradiance(plant["lat"], plant["lon"], local_time)
+                irradiance_data[plant["plant"]].append(irradiance)
 
     # Calcular a irradiância solar total para cada usina
     total_irradiance = {plant: sum(irradiance_data[plant]) for plant in irradiance_data}
@@ -77,6 +88,23 @@ def irradiancia(selected_usina=None):
 
     # Exibir o gráfico de linhas no Streamlit
     st.plotly_chart(fig_line, use_container_width=True)
+
+def load_detalhamentos(selected_usina=None, selected_date=None):
+    file_path = os.path.join('Relatorios', 'motivos.xlsx')
+    if not os.path.exists(file_path):
+        return pd.DataFrame()
+
+    df = pd.read_excel(file_path)
+    df['data'] = pd.to_datetime(df['data'])
+
+    if selected_usina:
+        df = df[df['usina'] == selected_usina]
+    if selected_date:
+        start_date = pd.to_datetime(selected_date.replace(day=1))
+        end_date = (start_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        df = df[(df['data'] >= start_date) & (df['data'] <= end_date)]
+
+    return df
 
 def performance(selected_inversor=None, selected_usina=None):
     # Lista de inversores fictícios com suas coordenadas
@@ -143,6 +171,41 @@ def performance(selected_inversor=None, selected_usina=None):
     st.title('Energia Total Gerada por Inversor')
     st.plotly_chart(fig_bar_energy, use_container_width=True)
 
+    # Gerar dados para SBs
+    sb_performance_data = {}
+    for inverter in inverters:
+        for sb_index in range(1, 7):
+            sb_id = f"{inverter['inverter']}_SB{sb_index}"
+            sb_performance_data[sb_id] = [value / 6 for value in performance_data[inverter["inverter"]]]
+
+    # Criar DataFrame para facilitar a manipulação dos dados das SBs
+    df_sb_performance = pd.DataFrame(sb_performance_data, index=time_data)
+
+    # Inverter os dados para que o tempo esteja em ordem crescente
+    df_sb_performance = df_sb_performance.iloc[::-1]
+
+    # Criar gráfico de linhas com Plotly Express para SBs
+    fig_sb_performance = px.line(df_sb_performance, x=df_sb_performance.index, y=df_sb_performance.columns, labels={'value': 'Performance da SB (W)', 'index': 'Hora'}, title='Performance das SBs a Cada 5 Minutos')
+    fig_sb_performance.update_layout(xaxis_title='Hora', yaxis_title='Performance da SB (W)', legend_title_text='SB')
+
+    # Exibir o gráfico de linhas no Streamlit
+    st.title('Performance das SBs a Cada 5 Minutos')
+    st.plotly_chart(fig_sb_performance, use_container_width=True)
+
+    # Calcular a energia total gerada por cada SB
+    total_sb_energy = {sb: sum(df_sb_performance[sb]) for sb in df_sb_performance.columns}
+
+    # Criar DataFrame para a energia total gerada das SBs
+    df_total_sb_energy = pd.DataFrame(list(total_sb_energy.items()), columns=['SB', 'Energia Total (Wh)'])
+
+    # Criar gráfico de barras com Plotly Express para SBs
+    fig_bar_sb_energy = px.bar(df_total_sb_energy, x='SB', y='Energia Total (Wh)', title='Energia Total Gerada por SB')
+    fig_bar_sb_energy.update_layout(xaxis_title='SB', yaxis_title='Energia Total (Wh)', legend_title_text='SB', xaxis_type='category')
+
+    # Exibir o gráfico de barras no Streamlit
+    st.title('Energia Total Gerada por SB')
+    st.plotly_chart(fig_bar_sb_energy, use_container_width=True)
+
 def save_to_excel(data):
     df = pd.DataFrame(data)
     file_path = os.path.join('Relatorios', 'motivos.xlsx')
@@ -193,7 +256,7 @@ def navigate_to(analise):
     st.session_state.analise = analise
     st.rerun()
 
-add_sidebar = st.sidebar.selectbox('Análises', ('Real Time', 'Resumo Usina', 'Detalhamento Inversores', 'Detalhamento SBs'), index=['Real Time', 'Resumo Usina', 'Detalhamento Inversores', 'Detalhamento SBs'].index(st.session_state.analise))
+add_sidebar = st.sidebar.selectbox('Análises', ('Real Time', 'Resumo Usina', 'Detalhamento Produção de Energia'), index=['Real Time', 'Resumo Usina', 'Detalhamento Produção de Energia'].index(st.session_state.analise))
 
 #################
 ## Real Time ##
@@ -204,11 +267,8 @@ if add_sidebar == 'Real Time':
     # Adicione aqui o código para os indicadores em tempo real
 
     # Botões para navegação
-    if st.button('Detalhamento Inversores'):
-        navigate_to('Detalhamento Inversores')
-
-    if st.button('Detalhamento SBs'):
-        navigate_to('Detalhamento SBs')
+    if st.button('Detalhamento Produção de Energia'):
+        navigate_to('Detalhamento Produção de Energia')
 
 #################
 ## Resumo Usina ##
@@ -216,14 +276,18 @@ if add_sidebar == 'Real Time':
 
 if add_sidebar == 'Resumo Usina':
     st.title('Resumo Usina')
-    irradiancia(selected_usina)
+    selected_date = st.date_input('Selecione a Data')
+    irradiancia(selected_usina, selected_date)
+    df_detalhamentos = load_detalhamentos(selected_usina, selected_date)
+    st.title('Detalhamentos de Motivos')
+    st.dataframe(df_detalhamentos)
 
 #############################
-## Detalhamento Inversores ##
+## Detalhamento Produção de Energia ##
 #############################
 
-if add_sidebar == 'Detalhamento Inversores':
-    st.title('Detalhamento Inversores')
+if add_sidebar == 'Detalhamento Produção de Energia':
+    st.title('Detalhamento Produção de Energia')
     inversores_opcoes = ['Todos Inversores']
     if selected_usina == 'Usina 1':
         inversores_opcoes += ['331', '332', '333']
@@ -236,12 +300,4 @@ if add_sidebar == 'Detalhamento Inversores':
     
     selected_inversor = st.selectbox('Selecione o Inversor', inversores_opcoes)
     performance(selected_inversor, selected_usina)
-    detalhamento()
-
-#############################
-## Detalhamento SBs ##
-#############################
-
-if add_sidebar == 'Detalhamento SBs':
-    st.title('Detalhamento SBs')
     detalhamento()
