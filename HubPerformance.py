@@ -8,10 +8,39 @@ import plotly.express as px
 import random
 import openpyxl
 import os
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+
+#Dados google sheets
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+SAMPLE_SPREADSHEET_ID = "1RfN90_ye1SrsEjRlrumaNAhuVllu2Ii_7n7YHt2uSZk"
+SAMPLE_RANGE_NAME = "Página1!A:F"
 
 ###############
 ##  Funções  ## 
 ###############
+
+def get_google_sheet_service():
+    creds = None
+    if os.path.exists("token.json"):
+        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file("client_secret.json", SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open("token.json", "w") as token:
+            token.write(creds.to_json())
+    try:
+        service = build("sheets", "v4", credentials=creds)
+        return service
+    except HttpError as err:
+        print(err)
+        return None
 
 # Função para obter dados de irradiância solar
 def get_solar_irradiance(lat, lon, date_time):
@@ -90,21 +119,40 @@ def irradiancia(selected_usina=None, selected_date=None):
     st.plotly_chart(fig_line, use_container_width=True)
 
 def load_detalhamentos(selected_usina=None, selected_date=None):
-    file_path = os.path.join('Relatorios', 'motivos.xlsx')
-    if not os.path.exists(file_path):
+    service = get_google_sheet_service()
+    if not service:
         return pd.DataFrame()
 
-    df = pd.read_excel(file_path)
+    sheet = service.spreadsheets()
+    result = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=SAMPLE_RANGE_NAME).execute()
+    values = result.get("values", [])
+
+    if not values:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(values[1:], columns=values[0])
     df['data'] = pd.to_datetime(df['data'])
 
     if selected_usina:
         df = df[df['usina'] == selected_usina]
     if selected_date:
-        start_date = pd.to_datetime(selected_date.replace(day=1))
-        end_date = (start_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
-        df = df[(df['data'] >= start_date) & (df['data'] <= end_date)]
+        df = df[df['data'].dt.date == selected_date]
 
     return df
+
+def save_to_google_sheets(data):
+    service = get_google_sheet_service()
+    if not service:
+        return
+
+    sheet = service.spreadsheets()
+    sheet.values().append(
+        spreadsheetId=SAMPLE_SPREADSHEET_ID,
+        range=SAMPLE_RANGE_NAME,
+        valueInputOption="RAW",
+        insertDataOption="INSERT_ROWS",
+        body={"values": [data]}
+    ).execute()
 
 def performance(selected_inversor=None, selected_usina=None):
     # Lista de inversores fictícios com suas coordenadas
@@ -228,15 +276,8 @@ def detalhamento():
     data = st.date_input('Data')
 
     if st.button('Salvar'):
-        data = {
-            'Usina': [usina],
-            'Tipo Equipamento': [tipo_equipamento],
-            'Identificador Equipamento': [identificador_equipamento],
-            'Motivo': [motivo],
-            'Motivo Detalhado': [motivo_detalhado],
-            'Data': [data]
-        }
-        save_to_excel(data)
+        data = [usina, tipo_equipamento, identificador_equipamento, motivo, motivo_detalhado, str(data)]
+        save_to_google_sheets(data)
         st.success('Motivo salvo com sucesso!')
 
 def navigate_to(analise):
