@@ -239,6 +239,10 @@ def detalhamento():
         save_to_excel(data)
         st.success('Motivo salvo com sucesso!')
 
+def navigate_to(analise):
+    st.session_state.analise = analise
+    st.rerun()
+
 #####################
 ## Streamlit Geral ##
 #####################
@@ -252,10 +256,6 @@ if selected_usina == 'Todas':
 if 'analise' not in st.session_state:
     st.session_state.analise = 'Real Time'
 
-def navigate_to(analise):
-    st.session_state.analise = analise
-    st.rerun()
-
 add_sidebar = st.sidebar.selectbox('Análises', ('Real Time', 'Resumo Usina', 'Detalhamento Produção de Energia'), index=['Real Time', 'Resumo Usina', 'Detalhamento Produção de Energia'].index(st.session_state.analise))
 
 #################
@@ -266,6 +266,26 @@ if add_sidebar == 'Real Time':
     st.title('Indicadores Real Time')
     # Adicione aqui o código para os indicadores em tempo real
 
+    column1, column2, column3 = st.columns(3)
+
+    with column1:
+        producao_energia_atual = 1000  # valor fictício
+        producao_energia_meta = 1100  # meta fictícia
+        st.metric('Produção de Energia', f'{producao_energia_atual} kWh', f'{producao_energia_atual - producao_energia_meta} kWh')
+        st.markdown(f"<span style='color: gray;'>Meta: {producao_energia_meta} kWh</span>", unsafe_allow_html=True)
+
+    with column2:
+        irradiancia_solar_atual = 1000  # valor fictício
+        irradiancia_solar_meta = 1050  # meta fictícia
+        st.metric('Irradiância Solar', f'{irradiancia_solar_atual} W/m²', f'{irradiancia_solar_atual - irradiancia_solar_meta} W/m²')
+        st.markdown(f"<span style='color: gray;'>Meta: {irradiancia_solar_meta} W/m²</span>", unsafe_allow_html=True)
+
+    with column3:  
+        performance_inversor_atual = 1000  # valor fictício
+        performance_inversor_meta = 1150  # meta fictícia
+        st.metric('Performance do Inversor', f'{performance_inversor_atual} W', f'{performance_inversor_atual - performance_inversor_meta} W')
+        st.markdown(f"<span style='color: gray;'>Meta: {performance_inversor_meta} W</span>", unsafe_allow_html=True)
+        
     # Botões para navegação
     if st.button('Detalhamento Produção de Energia'):
         navigate_to('Detalhamento Produção de Energia')
