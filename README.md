@@ -39,23 +39,24 @@ Este projeto demonstra como usar o Streamlit para criar uma aplicação de monit
 ## Estrutura do Projeto
 
 - `Hub Performance.py`: Código principal da aplicação Streamlit.
-- [README.md](http://_vscodecontentref_/1): Este arquivo.
+- [README.md](http://_vscodecontentref_/3): Este arquivo.
 - `requirements.txt`: Lista de dependências do projeto.
 
 ## Exemplo de Uso
 
 ### Indicadores em Tempo Real
 
-![Indicadores em Tempo Real](imagens/indicadores_realtime.png)
+![Indicadores em Tempo Real](imagens/indicadores_realtime.PNG)
 
 ### Gráficos de Produção de Energia
 
-![Gráficos de Produção de Energia](imagens/graficos_producao.png)
+![Gráficos de Produção de Energia](imagens/graficos_producao.PNG)
 
 ### Detalhamento de Produção de Energia
 
-![Detalhamento de Produção de Energia](imagens/detalhamento_producao.png)
+![Detalhamento de Produção de Energia](imagens/detalhamento_producao.PNG)
 
 ### Sistema de Registro de ocorrências e justificativas
 
-![Sistema de Registro de ocorrências e justificativas](imagens/registro.png)
+![Sistema de Registro de ocorrências e justificativas](imagens/registro.PNG)
+
