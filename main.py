@@ -25,7 +25,7 @@ def get_solar_irradiance(lat, lon, date_time):
 def calculate_inverter_performance(irradiance, efficiency=0.20):
     return irradiance * efficiency
 
-def irradiancia():
+def irradiancia(selected_usina=None):
 
     # Lista de usinas fictícias com suas coordenadas
     plants = [
@@ -33,6 +33,9 @@ def irradiancia():
         {"plant": "Usina 2", "lat": -15.7942, "lon": -47.8822, "timezone": "America/Sao_Paulo"},
         {"plant": "Usina 3", "lat": -3.1190, "lon": -60.0217, "timezone": "America/Manaus"}
     ]
+
+    if selected_usina:
+        plants = [plant for plant in plants if plant["plant"] == selected_usina]
 
     # Obter dados de irradiância solar para as últimas 24 horas para cada usina
     irradiance_data = {plant["plant"]: [] for plant in plants}
@@ -74,13 +77,16 @@ def irradiancia():
     # Exibir o gráfico de linhas no Streamlit
     st.plotly_chart(fig_line, use_container_width=True)
 
-def performance():
+def performance(selected_usina=None):
     # Lista de usinas fictícias com suas coordenadas
     plants = [
         {"plant": "Usina 1", "lat": -23.5505, "lon": -46.6333, "timezone": "America/Sao_Paulo"},
         {"plant": "Usina 2", "lat": -15.7942, "lon": -47.8822, "timezone": "America/Sao_Paulo"},
         {"plant": "Usina 3", "lat": -3.1190, "lon": -60.0217, "timezone": "America/Manaus"}
     ]
+
+    if selected_usina:
+        plants = [plant for plant in plants if plant["plant"] == selected_usina]
 
     # Obter dados de irradiância solar para as últimas 24 horas para cada usina a cada 5 minutos
     performance_data = {plant["plant"]: [] for plant in plants}
@@ -112,6 +118,20 @@ def performance():
     # Exibir o gráfico de linhas no Streamlit
     st.title('Performance do Inversor Solar a Cada 5 Minutos')
     st.plotly_chart(fig_performance, use_container_width=True)
+
+    # Calcular a energia total gerada por cada inversor
+    total_energy = {plant: sum(df_performance[plant]) for plant in df_performance.columns}
+
+    # Criar DataFrame para a energia total gerada
+    df_total_energy = pd.DataFrame(list(total_energy.items()), columns=['Usina', 'Energia Total (Wh)'])
+
+    # Criar gráfico de barras com Plotly Express
+    fig_bar_energy = px.bar(df_total_energy, x='Usina', y='Energia Total (Wh)', title='Energia Total Gerada por Usina')
+    fig_bar_energy.update_layout(xaxis_title='Usina', yaxis_title='Energia Total (Wh)', legend_title_text='Usina')
+
+    # Exibir o gráfico de barras no Streamlit
+    st.title('Energia Total Gerada por Usina')
+    st.plotly_chart(fig_bar_energy, use_container_width=True)
 
 def save_to_excel(data):
     df = pd.DataFrame(data)
@@ -148,6 +168,10 @@ def detalhamento():
 #####################
 
 # Adicionar uma barra lateral
+selected_usina = st.sidebar.selectbox('Selecione a Usina', ['Todas', 'Usina 1', 'Usina 2', 'Usina 3'])
+if selected_usina == 'Todas':
+    selected_usina = None
+
 add_sidebar = st.sidebar.selectbox('Análises', ('Real Time', 'Resumo Usina', 'Detalhamento Inversores', 'Detalhamento SBs'))
 
 #################
@@ -164,7 +188,7 @@ if add_sidebar == 'Real Time':
 
 if add_sidebar == 'Resumo Usina':
     st.title('Resumo Usina')
-    irradiancia()
+    irradiancia(selected_usina)
 
 #############################
 ## Detalhamento Inversores ##
@@ -172,7 +196,7 @@ if add_sidebar == 'Resumo Usina':
 
 if add_sidebar == 'Detalhamento Inversores':
     st.title('Detalhamento Inversores')
-    performance()
+    performance(selected_usina)
     detalhamento()
 
 #############################
