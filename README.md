@@ -56,10 +56,6 @@ Este projeto demonstra como usar o Streamlit para criar uma aplicação de monit
 
 ![Detalhamento de Produção de Energia](imagens/detalhamento_producao.png)
 
-## Contribuição
+### Sistema de Registro de ocorrências e justificativas
 
-Contribuições são bem-vindas! Sinta-se à vontade para abrir uma issue ou enviar um pull request.
-
-## Licença
-
-Este projeto está licenciado sob a Licença MIT. Veja o arquivo LICENSE para mais detalhes.
+![Sistema de Registro de ocorrências e justificativas](imagens/registro.png)
