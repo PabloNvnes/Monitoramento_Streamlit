@@ -78,33 +78,42 @@ def irradiancia(selected_usina=None):
     # Exibir o gráfico de linhas no Streamlit
     st.plotly_chart(fig_line, use_container_width=True)
 
-def performance(selected_usina=None):
-    # Lista de usinas fictícias com suas coordenadas
-    plants = [
-        {"plant": "Usina 1", "lat": -23.5505, "lon": -46.6333, "timezone": "America/Sao_Paulo"},
-        {"plant": "Usina 2", "lat": -15.7942, "lon": -47.8822, "timezone": "America/Sao_Paulo"},
-        {"plant": "Usina 3", "lat": -3.1190, "lon": -60.0217, "timezone": "America/Manaus"}
+def performance(selected_inversor=None, selected_usina=None):
+    # Lista de inversores fictícios com suas coordenadas
+    inverters = [
+        {"inverter": "331", "lat": -23.5505, "lon": -46.6333, "timezone": "America/Sao_Paulo", "usina": "Usina 1"},
+        {"inverter": "332", "lat": -23.5505, "lon": -46.6333, "timezone": "America/Sao_Paulo", "usina": "Usina 1"},
+        {"inverter": "333", "lat": -23.5505, "lon": -46.6333, "timezone": "America/Sao_Paulo", "usina": "Usina 1"},
+        {"inverter": "431", "lat": -15.7942, "lon": -47.8822, "timezone": "America/Sao_Paulo", "usina": "Usina 2"},
+        {"inverter": "432", "lat": -15.7942, "lon": -47.8822, "timezone": "America/Sao_Paulo", "usina": "Usina 2"},
+        {"inverter": "433", "lat": -15.7942, "lon": -47.8822, "timezone": "America/Sao_Paulo", "usina": "Usina 2"},
+        {"inverter": "531", "lat": -3.1190, "lon": -60.0217, "timezone": "America/Manaus", "usina": "Usina 3"},
+        {"inverter": "532", "lat": -3.1190, "lon": -60.0217, "timezone": "America/Manaus", "usina": "Usina 3"},
+        {"inverter": "533", "lat": -3.1190, "lon": -60.0217, "timezone": "America/Manaus", "usina": "Usina 3"}
     ]
 
     if selected_usina:
-        plants = [plant for plant in plants if plant["plant"] == selected_usina]
+        inverters = [inverter for inverter in inverters if inverter["usina"] == selected_usina]
 
-    # Obter dados de irradiância solar para as últimas 24 horas para cada usina a cada 5 minutos
-    performance_data = {plant["plant"]: [] for plant in plants}
+    if selected_inversor and selected_inversor != 'Todos Inversores':
+        inverters = [inverter for inverter in inverters if inverter["inverter"] == selected_inversor]
+
+    # Obter dados de irradiância solar para as últimas 24 horas para cada inversor a cada 5 minutos
+    performance_data = {inverter["inverter"]: [] for inverter in inverters}
     time_data = []
     current_time = datetime.now(pytz.utc)
     for minute in range(0, 24 * 60, 5):
         time_point = current_time - timedelta(minutes=minute)
         time_data.append(time_point)
-        for plant in plants:
-            timezone = pytz.timezone(plant["timezone"])
+        for inverter in inverters:
+            timezone = pytz.timezone(inverter["timezone"])
             local_time = time_point.astimezone(timezone)
-            irradiance = get_solar_irradiance(plant["lat"], plant["lon"], local_time)
+            irradiance = get_solar_irradiance(inverter["lat"], inverter["lon"], local_time)
             performance = calculate_inverter_performance(irradiance)
             # Simular problemas nos inversores
             if random.random() < 0.05:  # 5% de chance de problema
                 performance *= random.uniform(0.5, 0.9)  # Reduzir performance entre 10% e 50%
-            performance_data[plant["plant"]].append(performance)
+            performance_data[inverter["inverter"]].append(performance)
 
     # Criar DataFrame para facilitar a manipulação dos dados
     df_performance = pd.DataFrame(performance_data, index=time_data)
@@ -114,24 +123,24 @@ def performance(selected_usina=None):
 
     # Criar gráfico de linhas com Plotly Express
     fig_performance = px.line(df_performance, x=df_performance.index, y=df_performance.columns, labels={'value': 'Performance do Inversor (W)', 'index': 'Hora'}, title='Performance do Inversor Solar a Cada 5 Minutos')
-    fig_performance.update_layout(xaxis_title='Hora', yaxis_title='Performance do Inversor (W)', legend_title_text='Usina')
+    fig_performance.update_layout(xaxis_title='Hora', yaxis_title='Performance do Inversor (W)', legend_title_text='Inversor')
 
     # Exibir o gráfico de linhas no Streamlit
     st.title('Performance do Inversor Solar a Cada 5 Minutos')
     st.plotly_chart(fig_performance, use_container_width=True)
 
     # Calcular a energia total gerada por cada inversor
-    total_energy = {plant: sum(df_performance[plant]) for plant in df_performance.columns}
+    total_energy = {inverter: sum(df_performance[inverter]) for inverter in df_performance.columns}
 
     # Criar DataFrame para a energia total gerada
-    df_total_energy = pd.DataFrame(list(total_energy.items()), columns=['Usina', 'Energia Total (Wh)'])
+    df_total_energy = pd.DataFrame(list(total_energy.items()), columns=['Inversor', 'Energia Total (Wh)'])
 
     # Criar gráfico de barras com Plotly Express
-    fig_bar_energy = px.bar(df_total_energy, x='Usina', y='Energia Total (Wh)', title='Energia Total Gerada por Usina')
-    fig_bar_energy.update_layout(xaxis_title='Usina', yaxis_title='Energia Total (Wh)', legend_title_text='Usina')
+    fig_bar_energy = px.bar(df_total_energy, x='Inversor', y='Energia Total (Wh)', title='Energia Total Gerada por Inversor')
+    fig_bar_energy.update_layout(xaxis_title='Inversor', yaxis_title='Energia Total (Wh)', legend_title_text='Inversor', xaxis_type='category')
 
     # Exibir o gráfico de barras no Streamlit
-    st.title('Energia Total Gerada por Usina')
+    st.title('Energia Total Gerada por Inversor')
     st.plotly_chart(fig_bar_energy, use_container_width=True)
 
 def save_to_excel(data):
@@ -215,7 +224,18 @@ if add_sidebar == 'Resumo Usina':
 
 if add_sidebar == 'Detalhamento Inversores':
     st.title('Detalhamento Inversores')
-    performance(selected_usina)
+    inversores_opcoes = ['Todos Inversores']
+    if selected_usina == 'Usina 1':
+        inversores_opcoes += ['331', '332', '333']
+    elif selected_usina == 'Usina 2':
+        inversores_opcoes += ['431', '432', '433']
+    elif selected_usina == 'Usina 3':
+        inversores_opcoes += ['531', '532', '533']
+    else:
+        inversores_opcoes += ['331', '332', '333', '431', '432', '433', '531', '532', '533']
+    
+    selected_inversor = st.selectbox('Selecione o Inversor', inversores_opcoes)
+    performance(selected_inversor, selected_usina)
     detalhamento()
 
 #############################
