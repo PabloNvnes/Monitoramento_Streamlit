@@ -7,6 +7,7 @@ import pandas as pd
 import plotly.express as px
 import random
 import openpyxl
+import os
 
 ###############
 ##  Funções  ## 
@@ -135,7 +136,8 @@ def performance(selected_usina=None):
 
 def save_to_excel(data):
     df = pd.DataFrame(data)
-    with pd.ExcelWriter('motivos.xlsx', engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
+    file_path = os.path.join('Relatorios', 'motivos.xlsx')
+    with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
         df.to_excel(writer, index=False, header=False, startrow=writer.sheets['Sheet1'].max_row)
 
 def detalhamento():
@@ -172,7 +174,14 @@ selected_usina = st.sidebar.selectbox('Selecione a Usina', ['Todas', 'Usina 1', 
 if selected_usina == 'Todas':
     selected_usina = None
 
-add_sidebar = st.sidebar.selectbox('Análises', ('Real Time', 'Resumo Usina', 'Detalhamento Inversores', 'Detalhamento SBs'))
+# Gerenciar navegação entre abas
+if 'analise' not in st.session_state:
+    st.session_state.analise = 'Real Time'
+
+def navigate_to(analise):
+    st.session_state.analise = analise
+
+add_sidebar = st.sidebar.selectbox('Análises', ('Real Time', 'Resumo Usina', 'Detalhamento Inversores', 'Detalhamento SBs'), index=['Real Time', 'Resumo Usina', 'Detalhamento Inversores', 'Detalhamento SBs'].index(st.session_state.analise))
 
 #################
 ## Real Time ##
@@ -181,6 +190,13 @@ add_sidebar = st.sidebar.selectbox('Análises', ('Real Time', 'Resumo Usina', 'D
 if add_sidebar == 'Real Time':
     st.title('Indicadores Real Time')
     # Adicione aqui o código para os indicadores em tempo real
+
+    # Botões para navegação
+    if st.button('Detalhamento Inversores'):
+        navigate_to('Detalhamento Inversores')
+
+    if st.button('Detalhamento SBs'):
+        navigate_to('Detalhamento SBs')
 
 #################
 ## Resumo Usina ##
