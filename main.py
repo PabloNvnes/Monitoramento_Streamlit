@@ -137,6 +137,8 @@ def performance(selected_usina=None):
 def save_to_excel(data):
     df = pd.DataFrame(data)
     file_path = os.path.join('Relatorios', 'motivos.xlsx')
+    if not os.path.exists('Relatorios'):
+        os.makedirs('Relatorios')
     with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
         df.to_excel(writer, index=False, header=False, startrow=writer.sheets['Sheet1'].max_row)
 
@@ -180,6 +182,7 @@ if 'analise' not in st.session_state:
 
 def navigate_to(analise):
     st.session_state.analise = analise
+    st.rerun()
 
 add_sidebar = st.sidebar.selectbox('Análises', ('Real Time', 'Resumo Usina', 'Detalhamento Inversores', 'Detalhamento SBs'), index=['Real Time', 'Resumo Usina', 'Detalhamento Inversores', 'Detalhamento SBs'].index(st.session_state.analise))
 
